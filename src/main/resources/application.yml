@@ -1,0 +1,20 @@
+server:
+  port: 8090
+  session-timeout: 30
+  tomcat.max-threads: 0
+  tomcat.uri-encoding: UTF-8
+spring:
+  application:
+    name: server-eureka
+eureka:
+  instance:
+    hostname: localhost
+#  client:
+#    serviceUrl:
+#      defaultZone: http://localhost:8090/eureka/
+  serviceUrl:
+    defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+
+  client:
+    register-with-eureka: false
+    fetch-registry: false

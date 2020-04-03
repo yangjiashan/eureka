@@ -1,0 +1,149 @@
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8090/eureka/
+server:
+  port: 8763
+  # 网关配置压缩，下游服务不要配置压缩
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    # 默认情况下，仅会压缩2048字节以上的内容
+    min-response-size: 2048
+spring:
+  application:
+    name: zuul-service
+zuul:
+  routes:
+#    api-forward:
+#      path: /convergenceforwardservice/**
+#      service-id: convergenceforwardservice
+    api-a:
+      path: /ConvergenceCityInterfaceRequest/**
+      service-id: ConvergenceCityInterfaceRequest
+#     stripPrefix: false
+    api-b:
+      path: /api-order/**
+      service-id: order-service-feign
+    # webservice zuul转发
+    webservice-test:
+      path: /ConvergenceCityCatalog/ws/**
+      url: http://localhost:10010/ConvergenceCityCatalog/ws/
+      sensitive-headers:
+    # http zuul转发
+    http-test:
+      path: /ConvergenceCityCatalog/**
+      url: http://localhost:10010/ConvergenceCityCatalog/
+      sensitive-headers:
+  # 重定向问题 Host头信息的处理 有重定向的都需要配置 （例如：webservice wsdl 文档的 soap:address location 会有问题）
+  add-host-header: true
+  # 全局设置不过滤header头敏感信息
+  sensitive-headers:
+
+#独立为服务设置超时时间
+convergenceforwardservice:
+  ribbon:
+    ConnectTimeout: 5000
+    ReadTimeout: 5000
+
+  hystrix:
+    command:
+      default:
+        execution:
+          isolation:
+            thread:
+              timeoutInMilliseconds: 6000
+
+# 打开监控端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+# http://localhost:8090/eureka/apps 查看注册中心注册的服务，地址为注册中心地址
+
+
+# 或者使用简洁方式 服务名： 服务路径
+#    member-service: /api-member/**
+#    order-service-feign: /api-order/**
+# =================================================================================
+# @@@@@学习1
+# 关闭 服务发现获取服务名对应的服务清单列表
+#ribbon:
+#  eureka:
+#    enabled: false
+# 手动维护服务清单列表
+#member-service.ribbon.listOfServers=
+
+# @@@@@学习2
+# 网关默认使用服务名作为前缀，进行路由
+# 如
+#zuul:
+#  routes:
+#    api-a:
+#      path: /member-service/**
+#      service-id: member-service
+#    api-b:
+#      path: /order-service-feign/**
+#      service-id: order-service-feign
+#
+# 默认配置导致的问题：一些不希望被路由的服务也被默认配置了，解决方式：设置忽略路由配置（无视默认），需要路由的服务逐个配置
+# 全局配置不创建默认路由：zuul.ignored-services=* ,表示全部不默认配置
+# 逐个服务配置：zuul.routes.member-service=/member-service/**
+
+# @@@@@学习3
+# 多服务版本时候自定义路由
+# 情况如：member-service-v1,member-service-v2
+# 可以自定义路由：如 v1/member-service, v2/member-service
+# 路由映射：书写serviceroutemapper 使用正则匹配，使得访问路径v1/member-service，能映射到 member-service-v1
+
+# @@@@@学习4
+# 路由表达式ant
+# ?:匹配任意单个字符
+# *:匹配任意数量的字符
+# **:匹配任意数量字符，支持多级目录
+
+# @@@@@学习5
+# 路由匹配优先级，当请求时，存在两个或以上的路由配置可以匹配时候，存在路由优先级问题
+# 采用yml文件配置，如下，ext配置在前时候，优先匹配 /member-service/ext/**
+#zuul:
+#  routes:
+#    api-a:
+#      path: /member-service/ext/**
+#      service-id: member-service-ext
+#    api-b:
+#      path: /member-service/**
+#      service-id: member-service
+
+# @@@@@学习6
+# 当存在有些路由或一系列的路由不希望被路由时，可以采用忽略表达式 zuul.ingnored-patterns=/**/member-service/**
+# 表示匹配此类的路由均不被网关路由
+
+# @@@@@学习7
+# 设置路由前缀
+
+# @@@@@学习8
+# 路由转发本地，转发到网关自己控制层，或者其他地址
+# zuul.routes.api-a.path=/member-service/**
+# zuul.routes.api-a.url=forward:/local
+
+# @@@@@学习9
+# 网关路由时过滤敏感头信息，如cookie,set-cookie,authorization, 当web应用时候可以单独设置不过滤（web应用需要用到cookie登陆、授权等）
+
+# @@@@@学习10
+# 网关中 hystrix、ribbon使用，网关中已经引入依赖，配置即可
+
+# @@@@@学习11
+# 自定义过滤器异常处理
+# 自定义异常信息
+# 禁用过滤器：zuul.<simpleClassName>.<filterType>.disable=true,如 zuul.AccessFilter.pre.disable=true
+
+# @@@@@动态加载
+# 网关作为所有应用的统一入口，不能轻易重启，所以提供了路由、过滤器的动态配置
+# 动态路由配置配合spring cloud config 配置动态刷新来完成
+# 动态加载过滤器配合jvm动态语言，groovy
+
+# @@@@@学习12
+# zuul提供端点/routes返回所有路由规则
+# 例如 http://localhost:8763/actuator/routes
